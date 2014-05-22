@@ -1,169 +1,191 @@
 import java.util.ArrayList;
 
-
 //Controls all the game logic .. most important class in this project.
 public class ThreadsController extends Thread {
-	 ArrayList<ArrayList<DataOfSquare>> Squares= new ArrayList<ArrayList<DataOfSquare>>();
-	 Tuple headSnakePos;
-	 int sizeSnake=3;
-	 long speed = 50;
-	 public static int directionSnake ;
 
-	 ArrayList<Tuple> positions = new ArrayList<Tuple>();
-	 Tuple foodPosition;
-	 
-	 //Constructor of ControlleurThread 
-	 ThreadsController(Tuple positionDepart){
-		//Get all the threads
-		Squares=Window.Grid;
-		
-		headSnakePos=new Tuple(positionDepart.x,positionDepart.y);
+	private Square[][] squares;
+	private Tuple headSnakePos;
+	private int sizeSnake;
+	private long speed;
+	private int directionSnake;
+
+	private ArrayList<Tuple> positions = new ArrayList<Tuple>();
+	private Tuple foodPosition;
+
+	// Constructor of ControllorThread
+	public ThreadsController(Square[][] grid, String speed) {
+		// Get all the threads
+		this.squares = grid;
+
+		headSnakePos = new Tuple(20 / 2, 20 / 2);
+		sizeSnake = 3;
+		if ("SLOW".equals(speed)) {
+			this.speed = 200;
+		} else {
+			if ("MEDIUM".equals(speed)) {
+				this.speed = 100;
+			} else {
+				this.speed = 30;
+			}
+		}
 		directionSnake = 1;
 
-		//!!! Pointer !!!!
-		Tuple headPos = new Tuple(headSnakePos.getX(),headSnakePos.getY());
+		// !!! Pointer !!!!
+		Tuple headPos = new Tuple(headSnakePos.getX(), headSnakePos.getY());
 		positions.add(headPos);
-		
-		foodPosition= new Tuple(Window.height-1,Window.width-1);
+
+		foodPosition = new Tuple(20 - 1, 20 - 1);
 		spawnFood(foodPosition);
+	}
 
-	 }
-	 
-	 //Important part :
-	 public void run() {
-		 while(true){
-			 moveInterne(directionSnake);
-			 checkCollision();
-			 moveExterne();
-			 deleteTail();
-			 pauser();
-		 }
-	 }
-	 
-	 //delay between each move of the snake
-	 private void pauser(){
-		 try {
-				sleep(speed);
-		 } catch (InterruptedException e) {
-				e.printStackTrace();
-		 }
-	 }
-	 
-	 //Checking if the snake bites itself or is eating
-	 private void checkCollision() {
-		 Tuple posCritique = positions.get(positions.size()-1);
-		 for(int i = 0;i<=positions.size()-2;i++){
-			 boolean biteItself = posCritique.getX()==positions.get(i).getX() && posCritique.getY()==positions.get(i).getY();
-			 if(biteItself){
+	public int getDirectionSnake() {
+		return directionSnake;
+	}
+
+	public void setDirectionSnake(int dir) {
+		directionSnake = dir;
+	}
+
+	// Put food in a position and displays it
+	private void spawnFood(Tuple foodPositionIn) {
+		squares[foodPositionIn.getX()][foodPositionIn.getY()].lightMeUp(2);
+	}
+
+	// Important part :
+	@Override
+	public void run() {
+		while (true) {
+			moveInterne(directionSnake);
+			checkCollision();
+			moveExterne();
+			deleteTail();
+			pauser();
+		}
+	}
+
+	// Moves the head of the snake and refreshes the positions in the arraylist
+	// 1:right 2:left 3:top 4:bottom 0:nothing
+	public void moveInterne(int dir) {
+		switch (dir) {
+		case 4:// bottom
+			headSnakePos.changeData(headSnakePos.getX(),
+					(headSnakePos.getY() + 1) % 20);
+			positions.add(new Tuple(headSnakePos.getX(), headSnakePos.getY()));
+			break;
+		case 3:// top
+			if (headSnakePos.getY() - 1 < 0) {
+				headSnakePos.changeData(headSnakePos.getX(), 19);
+			} else {
+				headSnakePos.changeData(headSnakePos.getX(),
+						Math.abs(headSnakePos.getY() - 1) % 20);
+			}
+			positions.add(new Tuple(headSnakePos.getX(), headSnakePos.getY()));
+			break;
+		case 2:// left
+			if (headSnakePos.getX() - 1 < 0) {
+				headSnakePos.changeData(19, headSnakePos.getY());
+			} else {
+				headSnakePos.changeData(Math.abs(headSnakePos.getX() - 1) % 20,
+						headSnakePos.getY());
+			}
+			positions.add(new Tuple(headSnakePos.getX(), headSnakePos.getY()));
+
+			break;
+		case 1:// right
+			headSnakePos.changeData(Math.abs(headSnakePos.getX() + 1) % 20,
+					headSnakePos.getY());
+			positions.add(new Tuple(headSnakePos.getX(), headSnakePos.getY()));
+			break;
+		}
+	}
+
+	// Checking if the snake bites itself or is eating
+	public void checkCollision() {
+		Tuple posCritique = positions.get(positions.size() - 1);
+		for (int i = 0; i <= positions.size() - 2; i++) {
+			boolean biteItself = posCritique.getX() == positions.get(i).getX()
+					&& posCritique.getY() == positions.get(i).getY();
+			if (biteItself) {
 				stopTheGame();
-			 }
-		 }
-		 
-		 boolean eatingFood = posCritique.getX()==foodPosition.y && posCritique.getY()==foodPosition.x;
-		 if(eatingFood){
-			 System.out.println("Yummy!");
-			 sizeSnake=sizeSnake+1;
-			 	foodPosition = getValAleaNotInSnake();
+			}
+		}
 
-			 spawnFood(foodPosition);	
-		 }
-	 }
-	 
-	 //Stops The Game
-	 private void stopTheGame(){
-		 System.out.println("COLISION! \n");
-		 while(true){
-			 pauser();
-		 }
-	 }
-	 
-	 //Put food in a position and displays it
-	 private void spawnFood(Tuple foodPositionIn){
-		 	Squares.get(foodPositionIn.x).get(foodPositionIn.y).lightMeUp(1);
-	 }
-	 
-	 //return a position not occupied by the snake
-	 private Tuple getValAleaNotInSnake(){
-		 Tuple p ;
-		 int ranX= 0 + (int)(Math.random()*19); 
-		 int ranY= 0 + (int)(Math.random()*19); 
-		 p=new Tuple(ranX,ranY);
-		 for(int i = 0;i<=positions.size()-1;i++){
-			 if(p.getY()==positions.get(i).getX() && p.getX()==positions.get(i).getY()){
-				 ranX= 0 + (int)(Math.random()*19); 
-				 ranY= 0 + (int)(Math.random()*19); 
-				 p=new Tuple(ranX,ranY);
-				 i=0;
-			 }
-		 }
-		 return p;
-	 }
-	 
-	 //Moves the head of the snake and refreshes the positions in the arraylist
-	 //1:right 2:left 3:top 4:bottom 0:nothing
-	 private void moveInterne(int dir){
-		 switch(dir){
-		 	case 4:
-				 headSnakePos.ChangeData(headSnakePos.x,(headSnakePos.y+1)%20);
-				 positions.add(new Tuple(headSnakePos.x,headSnakePos.y));
-		 		break;
-		 	case 3:
-		 		if(headSnakePos.y-1<0){
-		 			 headSnakePos.ChangeData(headSnakePos.x,19);
-		 		 }
-		 		else{
-				 headSnakePos.ChangeData(headSnakePos.x,Math.abs(headSnakePos.y-1)%20);
-		 		}
-				 positions.add(new Tuple(headSnakePos.x,headSnakePos.y));
-		 		break;
-		 	case 2:
-		 		 if(headSnakePos.x-1<0){
-		 			 headSnakePos.ChangeData(19,headSnakePos.y);
-		 		 }
-		 		 else{
-		 			 headSnakePos.ChangeData(Math.abs(headSnakePos.x-1)%20,headSnakePos.y);
-		 		 } 
-		 		positions.add(new Tuple(headSnakePos.x,headSnakePos.y));
+		boolean eatingFood = posCritique.getX() == foodPosition.getY()
+				&& posCritique.getY() == foodPosition.getX();
+		if (eatingFood) {
+			System.out.println("Yummy!");
+			sizeSnake = sizeSnake + 1;
+			foodPosition = getValAreaNotInSnake();
 
-		 		break;
-		 	case 1:
-				 headSnakePos.ChangeData(Math.abs(headSnakePos.x+1)%20,headSnakePos.y);
-				 positions.add(new Tuple(headSnakePos.x,headSnakePos.y));
-		 		 break;
-		 }
-	 }
-	 
-	 //Refresh the squares that needs to be 
-	 private void moveExterne(){
-		 for(Tuple t : positions){
-			 int y = t.getX();
-			 int x = t.getY();
-			 Squares.get(x).get(y).lightMeUp(0);
-			 
-		 }
-	 }
-	 
-	 //Refreshes the tail of the snake, by removing the superfluous data in positions arraylist
-	 //and refreshing the display of the things that is removed
-	 private void deleteTail(){
-		 int cmpt = sizeSnake;
-		 for(int i = positions.size()-1;i>=0;i--){
-			 if(cmpt==0){
-				 Tuple t = positions.get(i);
-				 Squares.get(t.y).get(t.x).lightMeUp(2);
-			 }
-			 else{
-				 cmpt--;
-			 }
-		 }
-		 cmpt = sizeSnake;
-		 for(int i = positions.size()-1;i>=0;i--){
-			 if(cmpt==0){
-				 positions.remove(i);
-			 }
-			 else{
-				 cmpt--;
-			 }
-		 }
-	 }
+			spawnFood(foodPosition);
+		}
+	}
+
+	// Refresh the squares that needs to be
+	public void moveExterne() {
+		for (Tuple t : positions) {
+			int y = t.getX();
+			int x = t.getY();
+			squares[x][y].lightMeUp(0);
+
+		}
+	}
+
+	// Refreshes the tail of the snake, by removing the superfluous data in
+	// positions arraylist
+	// and refreshing the display of the things that is removed
+	public void deleteTail() {
+		int cmpt = sizeSnake;
+		for (int i = positions.size() - 1; i >= 0; i--) {
+			if (cmpt == 0) {
+				Tuple t = positions.get(i);
+				squares[t.getY()][t.getX()].lightMeUp(1);
+			} else {
+				cmpt--;
+			}
+		}
+		cmpt = sizeSnake;
+		for (int i = positions.size() - 1; i >= 0; i--) {
+			if (cmpt == 0) {
+				positions.remove(i);
+			} else {
+				cmpt--;
+			}
+		}
+	}
+
+	// delay between each move of the snake
+	public void pauser() {
+		try {
+			sleep(speed);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+
+	// Stops The Game
+	public void stopTheGame() {
+		System.out.println("COLLISION! \n");
+		while (true) {
+			pauser();
+		}
+	}
+
+	// return a position not occupied by the snake
+	public Tuple getValAreaNotInSnake() {
+		Tuple p;
+		int ranX = 0 + (int) (Math.random() * 19);
+		int ranY = 0 + (int) (Math.random() * 19);
+		p = new Tuple(ranX, ranY);
+		for (int i = 0; i <= positions.size() - 1; i++) {
+			if (p.getY() == positions.get(i).getX()
+					&& p.getX() == positions.get(i).getY()) {
+				ranX = 0 + (int) (Math.random() * 19);
+				ranY = 0 + (int) (Math.random() * 19);
+				p = new Tuple(ranX, ranY);
+				i = 0;
+			}
+		}
+		return p;
+	}
 }
